@@ -109,14 +109,14 @@ func mccToCategory(mcc int32) string {
 	return "Other"
 }
 
-func (w *MonoWrap) FindMainUAH(ctx context.Context) (*mono.Account, error) {
+func (w *MonoWrap) FindAccount(ctx context.Context, typ string) (*mono.Account, error) {
 	user, err := w.mono.User(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	for i, acc := range user.Accounts {
-		if acc.Type == mono.Platinum {
+		if string(acc.Type) == typ {
 			ccy, err := mono.CurrencyFromISO4217(acc.CurrencyCode)
 			if err != nil {
 				continue
@@ -129,23 +129,26 @@ func (w *MonoWrap) FindMainUAH(ctx context.Context) (*mono.Account, error) {
 		}
 	}
 
-	return nil, errors.New("failed")
+	return nil, errors.New("not found")
 }
 
 func main() {
 	to := DateFlag{date: time.Now()}
 	from := DateFlag{to.date.Add(-24 * 31 * time.Hour)}
+
 	var output string
+	var account string
 
 	flag.Var(&from, "from", "Start time")
 	flag.Var(&to, "to", "Finish time")
 	flag.StringVar(&output, "output", "result.csv", "Output format")
+	flag.StringVar(&account, "account", "", "")
 
 	flag.Parse()
 
 	client := New(os.Getenv("MONO_API_KEY"))
 
-	acc, err := client.FindMainUAH(context.Background())
+	acc, err := client.FindAccount(context.Background(), account)
 	if err != nil {
 		log.Fatal(err)
 	}
