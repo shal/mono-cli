@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/shal/mono"
@@ -82,28 +83,52 @@ func mccToENG(mcc int32) string {
 	return "UNKNOWN"
 }
 
-func mccToCategory(mcc int32) string {
-	switch mcc {
+func mccToCategory(tx *mono.Transaction) string {
+	description := strings.ToLower(tx.Description)
+
+	switch tx.MCC {
 	case 7841:
 		return "Fun"
 	case 4121:
 		return "Transport/Taxi"
 	case 5411:
 		return "Food"
-	case 5812, 5814:
+	case 5812, 5814, 5399:
+		if strings.Contains(description, "coffee") {
+			return "Coffee"
+		}
+
 		return "Restaurants"
 	case 5912:
 		return "Selfcare"
 	case 7399:
 		return "OpenCars"
-	case 5941, 5946, 5651:
+	case 5941, 5946, 5651, 5699, 5732:
 		return "Clothes"
 	case 5541:
 		return "Car/Gas"
 	case 4812, 4814:
 		return "Utility bills/Mobile"
 	case 4829:
+		if strings.Contains(description, "мама") {
+			return "Mom/Father"
+		}
+
+		if strings.Contains(description, "megogo") {
+			return "Зарплата"
+		}
+
+		if strings.Contains(description, "поповнення") {
+			return "Charity"
+		}
+
 		return "Other"
+	case 7538, 5533:
+		return "Car/Fixes"
+	case 5995:
+		return "Cat"
+	case 2741:
+		return "Subscriptions"
 	}
 
 	return "Other"
@@ -163,13 +188,17 @@ func main() {
 		for i := 0; i < len(txs); i++ {
 			tx := txs[len(txs)-1-i]
 
+			amount := decimal.NewFromInt(tx.Amount)
+			amount = amount.Shift(-2)
+
 			fmt.Printf("Number: %d\n", i+1)
 			fmt.Printf("ID: %s\n", tx.ID)
-			fmt.Printf("Amount: %0.2f UAH\n", float64(tx.Amount)/100.0)
+			fmt.Printf("Amount: %s UAH\n", amount.String())
 			fmt.Printf("Description: %s\n", tx.Description)
 			fmt.Printf("Date: %s\n", tx.Time.Format(time.RFC3339))
 			fmt.Printf("MCC: %d\n", tx.MCC)
 			fmt.Printf("Amount: %0.2f UAH\n", float64(tx.Balance)/100.0)
+			fmt.Printf("MCC: %d\n", tx.MCC)
 			fmt.Println()
 		}
 
@@ -199,7 +228,7 @@ func main() {
 			amount.String(),
 			// strconv.FormatInt(int64(tx.MCC), 10),
 			ccy.Code,
-			mccToCategory(tx.MCC),
+			mccToCategory(tx),
 		}
 
 		if err := csvwriter.Write(row); err != nil {
