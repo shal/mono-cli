@@ -228,7 +228,7 @@ func main() {
 			amount.String(),
 			// strconv.FormatInt(int64(tx.MCC), 10),
 			ccy.Code,
-			mccToCategory(tx),
+			mccToCategory(&tx),
 		}
 
 		if err := csvwriter.Write(row); err != nil {
