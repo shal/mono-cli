@@ -78,6 +78,16 @@ func mccToENG(mcc int32) string {
 		return "TELECOMMUNCATIONS EQUIPMENT INCLUDING TELEPHONE SALES"
 	case 4814:
 		return "TELECOMMUNCATIONS SERV INCL LOCA/LONG DIST CREDIT & FAX"
+	case 7542:
+		return "CAR WASHES"
+	case 4111:
+		return "TRANSPORTATION"
+	case 4816:
+		return "COMPUTER NETWORK/INFO SVCS"
+	case 4900:
+		return "UTILITIES—ELECTRIC, GAS, HEATING OIL, SANITARY, WATER"
+	case 7999:
+		return "RECREATION SERVICES"
 	}
 
 	return "UNKNOWN"
@@ -93,9 +103,25 @@ func mccToCategory(tx *mono.Transaction) string {
 		return "Transport/Taxi"
 	case 5411:
 		return "Food"
-	case 5812, 5814, 5399:
+	case 5812, 5814, 5399, 5499, 7011, 5813:
 		if strings.Contains(description, "coffee") {
 			return "Coffee"
+		}
+
+		if description == "starbucks" {
+			return "Coffee"
+		}
+
+		if description == "balance service gastro" {
+			return "Coffee"
+		}
+
+		if description == "doza" {
+			return "Coffee"
+		}
+
+		if strings.Contains(description, "zabka") {
+			return "Food"
 		}
 
 		return "Restaurants"
@@ -118,6 +144,10 @@ func mccToCategory(tx *mono.Transaction) string {
 			return "Зарплата"
 		}
 
+		if strings.Contains(description, "ейч-лаб") {
+			return "Зарплата"
+		}
+
 		if strings.Contains(description, "поповнення") {
 			return "Charity"
 		}
@@ -129,12 +159,24 @@ func mccToCategory(tx *mono.Transaction) string {
 		return "Cat"
 	case 2741:
 		return "Subscriptions"
+	case 5977:
+		return "Presents"
+	case 7542:
+		return "Car/Wash"
+	case 4111:
+		return "Transport/Train"
+	case 4816:
+		return "OpenCars"
+	case 4900:
+		return "Utility Bills/Internet"
+	case 7999:
+		return "Selfcare"
 	}
 
 	return "Other"
 }
 
-func (w *MonoWrap) FindAccount(ctx context.Context, typ string) (*mono.Account, error) {
+func (w *MonoWrap) FindAccount(ctx context.Context, typ, currency string) (*mono.Account, error) {
 	user, err := w.mono.User(ctx)
 	if err != nil {
 		return nil, err
@@ -147,7 +189,7 @@ func (w *MonoWrap) FindAccount(ctx context.Context, typ string) (*mono.Account, 
 				continue
 			}
 
-			if ccy.Code == "UAH" {
+			if ccy.Code == currency {
 				tmp := user.Accounts[i]
 				return &tmp, nil
 			}
@@ -163,17 +205,19 @@ func main() {
 
 	var output string
 	var account string
+	var currency string
 
 	flag.Var(&from, "from", "Start time")
 	flag.Var(&to, "to", "Finish time")
 	flag.StringVar(&output, "output", "result.csv", "Output format")
-	flag.StringVar(&account, "account", "", "")
+	flag.StringVar(&account, "account", "", "Account type")
+	flag.StringVar(&currency, "currency", "UAH", "Currencty code of the account")
 
 	flag.Parse()
 
 	client := New(os.Getenv("MONO_API_KEY"))
 
-	acc, err := client.FindAccount(context.Background(), account)
+	acc, err := client.FindAccount(context.Background(), account, currency)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -224,9 +268,8 @@ func main() {
 
 		row := []string{
 			tx.Time.Format("02/01/2006 15:04"),
-			tx.Description,
+			strings.ReplaceAll(tx.Description, "\n", " "),
 			amount.String(),
-			// strconv.FormatInt(int64(tx.MCC), 10),
 			ccy.Code,
 			mccToCategory(&tx),
 		}

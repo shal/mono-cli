@@ -1,8 +1,8 @@
 module github.com/shal/mono-cli
 
-go 1.14
+go 1.19
 
 require (
-	github.com/shal/mono v0.2.2
-	github.com/shopspring/decimal v1.3.1 // indirect
+	github.com/shal/mono v0.2.4
+	github.com/shopspring/decimal v1.3.1
 )
